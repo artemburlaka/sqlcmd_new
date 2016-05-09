@@ -1,5 +1,6 @@
 package mainSQLCMD;
 
+import javax.activation.DataSource;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
@@ -33,16 +34,28 @@ public class DatabaseManager {
         System.out.println(Arrays.toString(tables));
 
         stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM public.user WHERE id > 5");
+        String tableName = "user";
+        ResultSet rsCount = stmt.executeQuery("SELECT COUNT(*) FROM public." + tableName);
+        rsCount.next();
+        int size = rsCount.getInt(1);
+
+        ResultSet rs = stmt.executeQuery("SELECT * FROM public." + tableName);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnSize = rsmd.getColumnCount();
+        DataSet[] result = new DataSet[size];
+        int index = 0;
         while (rs.next())
         {
-            System.out.println("id: " + rs.getString("id"));
-            System.out.println("name: " + rs.getString("name"));
-            System.out.println("password: " + rs.getString("password"));
-            System.out.println("-------");
+            DataSet dataSet = new DataSet();
+            result[index++] = dataSet;
+            for (int i = 0; i < columnSize; i++) {
+                dataSet.put(rsmd.getColumnName(i), rs.getObject(i));
+            }
         }
         rs.close();
         stmt.close();
+
+        System.out.println(Arrays.toString(result));
 
         //delete
         stmt = connection.createStatement();
