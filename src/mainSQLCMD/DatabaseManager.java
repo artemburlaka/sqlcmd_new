@@ -1,6 +1,5 @@
 package mainSQLCMD;
 
-import javax.activation.DataSource;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
@@ -22,46 +21,24 @@ public class DatabaseManager {
 
         Connection connection = manager.getConnection();
 
+        //delete
+        manager.clear("user");
+
         //insert
-        Statement stmt = connection.createStatement();
-        stmt.executeUpdate("INSERT INTO public.user (name, password)" +
-                "VALUES ('Stiven', 'Pupkin')");
-        stmt.close();
+        DataSet data = new DataSet();
+        data.put("id", 13);
+        data.put("name", "Stiven");
+        data.put("password", "pass");
+        manager.create(data);
 
         //select
         String[] tables = manager.getTableNames();
-
         System.out.println(Arrays.toString(tables));
 
-        stmt = connection.createStatement();
         String tableName = "user";
-        ResultSet rsCount = stmt.executeQuery("SELECT COUNT(*) FROM public." + tableName);
-        rsCount.next();
-        int size = rsCount.getInt(1);
 
-        ResultSet rs = stmt.executeQuery("SELECT * FROM public." + tableName);
-        ResultSetMetaData rsmd = rs.getMetaData();
-        int columnSize = rsmd.getColumnCount();
-        DataSet[] result = new DataSet[size];
-        int index = 0;
-        while (rs.next())
-        {
-            DataSet dataSet = new DataSet();
-            result[index++] = dataSet;
-            for (int i = 0; i < columnSize; i++) {
-                dataSet.put(rsmd.getColumnName(i), rs.getObject(i));
-            }
-        }
-        rs.close();
-        stmt.close();
-
+        DataSet[] result = manager.getTableData(tableName);
         System.out.println(Arrays.toString(result));
-
-        //delete
-        stmt = connection.createStatement();
-        stmt.executeUpdate("DELETE FROM public.user " +
-                "WHERE id > 10 AND id < 100");
-        stmt.close();
 
         //update
         PreparedStatement ps = connection.prepareStatement(
@@ -72,6 +49,43 @@ public class DatabaseManager {
         ps.close();
 
         connection.close();
+    }
+
+    public DataSet[] getTableData(String tableName){
+
+        try {
+            int size = getSize(tableName);
+
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM public." + tableName);
+            ResultSetMetaData rsmd = rs.getMetaData();
+            DataSet[] result = new DataSet[size];
+            int index = 0;
+            while (rs.next())
+            {
+                DataSet dataSet = new DataSet();
+                result[index++] = dataSet;
+                for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                    dataSet.put(rsmd.getColumnName(i), rs.getObject(i));
+                }
+            }
+            rs.close();
+            stmt.close();
+            return result;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            e.printStackTrace();
+            return new DataSet[0];
+        }
+    }
+
+    private int getSize(String tableName) throws SQLException {
+        Statement stmt = connection.createStatement();
+        ResultSet rsCount = stmt.executeQuery("SELECT COUNT(*) FROM public." + tableName);
+        rsCount.next();
+        int size = rsCount.getInt(1);
+        rsCount.close();
+        return size;
     }
 
     public String[] getTableNames() {
@@ -114,5 +128,66 @@ public class DatabaseManager {
 
     private Connection getConnection() {
         return connection;
+    }
+
+    public void clear(String tableName) {
+        try {
+            Statement stmt = connection.createStatement();
+            stmt.executeUpdate("DELETE FROM public." + tableName);
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void create(DataSet input) {
+        try {
+            Statement stmt = connection.createStatement();
+
+            String tableNames = getNamesFormated(input, "%s,");
+            String values = getValuesFormated(input, "'%s',");
+
+            stmt.executeUpdate("INSERT INTO public.user (" + tableNames + ")" +
+                    "VALUES (" + values + ")");
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getValuesFormated(DataSet input, String format) {
+        String values = "";
+        for (Object value : input.getValue()) {
+            values += String.format(format, value);
+        }
+        values = values.substring(0, values.length() - 1);
+        return values;
+    }
+
+    public void update(String tableName, int id, DataSet newValue) {
+        try {
+            String tableNames = getNamesFormated(newValue, "%s = ?,");
+
+            PreparedStatement ps = connection.prepareStatement(
+                    "UPDATE public." + tableName + " SET " + tableNames + " WHERE id = ?");
+            int index = 1;
+            for (Object value : newValue.getValue()) {
+                ps.setObject(index++, value);
+            }
+            ps.setInt(index,id);
+            ps.executeUpdate();
+            ps.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getNamesFormated(DataSet newValue, String format) {
+        String string = "";
+        for (String name : newValue.getNames()) {
+            string += String.format(format, name);
+        }
+        string = string.substring(0, string.length() - 1);
+        return string;
     }
 }
