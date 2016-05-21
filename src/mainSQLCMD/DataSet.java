@@ -1,7 +1,6 @@
 package mainSQLCMD;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * Created by admin on 09.05.2016.
@@ -28,26 +27,35 @@ public class DataSet {
     }
 
     public Data[] data = new Data[100]; //TODO remove magic number 100
-    public  int index = 0;
+    public  int freeIndex = 0;
 
     public void put(String name, Object value) {
-        data[index++] = new Data(name, value);
+        data[freeIndex++] = new Data(name, value);
     }
 
     public Object[] getValue() {
-        Object[] result = new Object[index];
-        for (int i = 0; i < index; i++) {
+        Object[] result = new Object[freeIndex];
+        for (int i = 0; i < freeIndex; i++) {
             result[i] = data[i].getValue();
         }
         return result;
     }
 
     public String[] getNames() {
-        String[] result = new String[index];
-        for (int i = 0; i < index; i++) {
+        String[] result = new String[freeIndex];
+        for (int i = 0; i < freeIndex; i++) {
             result[i] = data[i].getName();
         }
         return result;
+    }
+
+    public Object get(String name) {
+        for (int i = 0; i < freeIndex; i++) {
+            if (data[i].getName().equals(name)) {
+                return data[i].getValue();
+            }
+        }
+        return null;
     }
 
     @Override

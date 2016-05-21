@@ -10,13 +10,13 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by admin on 09.05.2016.
  */
-public class DatabaseManagerTest {
+public class JDBCDatabaseManagerTest {
 
     private DatabaseManager manager;
 
     @Before
     public void setup() {
-        manager = new DatabaseManager();
+        manager = new JDBCDatabaseManager();
         manager.connect("sqlcmd", "postgres", "9369");
     }
 
